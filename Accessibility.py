@@ -188,6 +188,11 @@ def standardize_A(A_series):
 
 
 if __name__ == '__main__':
+
+    # create a directory for results, if doesn't already exist.
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir)
+
     # load walk times. 
     walktimes = pd.read_csv(os.path.join(root,data_dir, walk_file), dtype={'taz_id':str,'walk_time':float})
     walktimes = walktimes.fillna(0)
