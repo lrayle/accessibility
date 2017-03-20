@@ -34,7 +34,3 @@ You can choose between two measures of accessibility:
 
 `Accessibility.py` runs the calculation.
 
-## Results
-
-An example of the results mapped for all of Cape Town (not just the sample data) is [here](http://lisarayle.com/ct-accessibility). (UI design is under development - this is just a minimal example.)
-
