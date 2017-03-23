@@ -8,7 +8,7 @@ In my research, I compare accessibility by informal transport, such as minibuses
 
 ## What this does
 
-`Accessibility.py` is a bit of the code for a fairly simple calculation behind my accessibilty model. Given data on land use and travel time between zones, it computes the accessibility scores for each zone. 
+`Accessibility.py` is a bit of the code for a fairly simple calculation behind my accessibilty model. Given data on land use and travel time between zones, it computes the accessibility score for each zone. 
 
 ### Input data
 
@@ -32,5 +32,10 @@ You can choose between two measures of accessibility:
 
 (See [Geurs and Van Wee, 2004](http://www.sciencedirect.com/science/article/pii/S0966692303000607) and [El-Geneidy and Levinson, 2006](http://conservancy.umn.edu/handle/11299/638).)
 
+### Output
+
+
 `Accessibility.py` runs the calculation.
+
+The default code computes accessibility scores for the travel modes MyCiTi (BRT), minibus taxi in 2011, and minibus taxi in 2015. It also computes scores for MyCiTi and minibus taxi combined in 2015. 
 

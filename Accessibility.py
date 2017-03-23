@@ -98,6 +98,10 @@ def set_initial_zero(df):
     np.fill_diagonal(new_values,0)  # set diagonal to zero. 
     return pd.DataFrame(new_values,index=df.index, columns=df.columns)
 
+def min_ttimes(df1,df2):
+    """Return element-wise minimum of two dataframes. Note: does not handle NaNs"""
+    return df1.where(df1 < df2, df2)
+
 def load_activities(path,fname):
     """Load activities data"""
     df = pd.read_csv(os.path.join(root,path,fname), dtype={'taz':str})
@@ -199,53 +203,55 @@ if __name__ == '__main__':
     walk_dict = dict(zip(walktimes['taz_id'],walktimes['walk_time']))
 
    
-    # load land use activities data. 
-    activ = load_activities(data_dir, lu_file)
-
     # make an index of taz labels
+    activ = load_activities(data_dir, lu_file)    
     taz_ind = activ[(activ.index!='0')&(pd.notnull(activ.index)&(activ.index!='None'))].index
 
+    
+    # load travel times by mode 
+    mode_tables = {}
+
+    for mode in ['myciti','taxi2011','taxi2015']:
+        if mode=='taxi2015':
+            infile = taxi_file_2015
+        elif mode=='taxi2011':
+            infile = taxi_file_2011
+        elif mode=='myciti':
+            infile = myciti_file
+        
+        costs_long = load_cost_matrix(data_dir,infile)
+        costs_long = fill_missing_costs(costs_long, taz_ind)
+        
+        # add walk times for taxi (already added for MyCiTi)
+        if (mode=='taxi2011')|(mode=='taxi2015'):
+            costs_long['tot_cost'] = costs_long.apply(add_walk_time, axis=1)
+            costs_long['agg_cost'] = costs_long['tot_cost']
+        costs=costs_long.pivot(index='start',columns='end', values='agg_cost')
+        costs = set_initial_zero(costs)
+        mode_tables[mode]=costs
+
+    # for myciti+taxi2015 combined, find minimum ttime using both tables. 
+    mode_tables['combined'] = min_ttimes(mode_tables['myciti'],mode_tables['taxi2015'])
+    modes.append('combined') 
+
     for lu_name in activ.columns:
-
-        # load travel times by mode 
-        mode_tables = {}
-
-        for mode in ['myciti','taxi2011','taxi2015']:
-            if mode=='taxi2015':
-                infile = taxi_file_2015
-            elif mode=='taxi2011':
-                infile = taxi_file_2011
-            elif mode=='myciti':
-                infile = myciti_file
-            
-            costs_long = load_cost_matrix(data_dir,infile)
-            costs_long = fill_missing_costs(costs_long, taz_ind)
-            
-            # add walk times for taxi (already added for MyCiTi)
-            if (mode=='taxi2011')|(mode=='taxi2015'):
-                costs_long['tot_cost'] = costs_long.apply(add_walk_time, axis=1)
-                costs_long['agg_cost'] = costs_long['tot_cost']
-            costs=costs_long.pivot(index='start',columns='end', values='agg_cost')
-            costs = set_initial_zero(costs)
-            mode_tables[mode]=costs
 
         ## Calculate A
         print('Calculating A for',len(taz_ind),'TAZs | land use:',lu_name)
 
-        D = activ # dataframe with activities
-
-
         for mode in modes:
             df_tt = mode_tables[mode]
             for tt_max in tt_max_list:
-                result = calculate_all_A(taz_ind = taz_ind, measure=measure, D=D, lu=lu_name, tt_max=tt_max, df_tt=df_tt, beta=beta)
+                result = calculate_all_A(taz_ind = taz_ind, measure=measure, D=activ, lu=lu_name, tt_max=tt_max, df_tt=df_tt, beta=beta)
                 
                 if standardize:
                     result = standardize_A(result)  # don't standardize if comparing different modes. 
 
+                # Save to csv. 
+                # in my application, I need csv files for each condition. In others it may be more convenient to save as one file. 
                 outfile = 'acc_{m}_{p}_{lu}.csv'.format(meas=measure, m=mode, p=tt_max,lu=lu_name)
                 print('saving file as',outfile)
-                result.to_csv(os.path.join(root,results_dir,outfile), index=True)
+                result.to_csv(os.path.join(root,results_dir,outfile), index=True)  
 
 
 
